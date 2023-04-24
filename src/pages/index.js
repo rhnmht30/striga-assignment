@@ -1,12 +1,10 @@
-import { Manrope } from 'next/font/google'
-
-const manrope = Manrope({ preload: true, subsets: ['latin'] })
+import Link from "next/link";
 
 export default function Home() {
   return (
-    <main
-      className={`flex min-h-screen flex-col justify-center p-24 ${manrope.className}`}
-    >
+    <main>
+      <h1>Welcome to striga assignment</h1>
+      <Link href="/auth/login">Go to /auth/login page</Link>
     </main>
-  )
+  );
 }
