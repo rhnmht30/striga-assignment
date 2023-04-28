@@ -1,6 +1,7 @@
 import Navbar from '@/components/navbar';
 import { manrope } from '@/config';
 import { ClipboardDocumentIcon, WalletIcon } from '@heroicons/react/24/outline';
+import { useRouter } from 'next/router';
 
 const clients = [
   {
@@ -24,15 +25,24 @@ const clients = [
 ];
 
 export default function Home() {
+  const router = useRouter();
+
   return (
     <main className={`flex flex-col min-h-screen ${manrope.className}`}>
       <Navbar />
       <section>
-        <div className="max-w-7xl xl:mx-auto">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 px-6 py-8">
+        <div className="max-w-7xl xl:mx-auto px-6 py-8">
+          <div className="border-b border-gray-200 dark:border-gray-600 pb-5">
+            <h2 className="text-2xl font-bold leading-7 text-gray-900 dark:text-white sm:truncate sm:text-3xl sm:tracking-tight">
+              Your wallets
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mt-8">
             {clients.map((client, index) => (
               <button
                 key={index}
+                onClick={() => router.push(`/wallet-details/${client.id}`)}
                 className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-600"
               >
                 <div className="flex items-center gap-x-4 border-b border-gray-900/5 bg-gray-50 dark:bg-gray-800 p-6">
@@ -56,7 +66,9 @@ export default function Home() {
                     </dd>
                   </div>
                   <div className="flex justify-between gap-x-4 py-3">
-                    <dt className="text-gray-500 dark:text-gray-400">Number of accounts</dt>
+                    <dt className="text-gray-500 dark:text-gray-400">
+                      Number of accounts
+                    </dt>
                     <dd className="flex items-start gap-x-2">
                       <div className="font-medium text-gray-900 dark:text-white">
                         {client.accounts}
