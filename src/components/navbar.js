@@ -108,10 +108,10 @@ export default function Navbar() {
                     <Link
                       key={route.name}
                       href={route.path}
-                      className={`inline-flex items-center ${
+                      className={`inline-flex items-center border-b-2 ${
                         router.asPath === route.path
-                          ? 'border-b-2 border-amber-500'
-                          : ''
+                          ? 'border-amber-500'
+                          : 'border-transparent'
                       } px-1 pt-1 text-sm font-medium text-gray-900 dark:text-white`}
                     >
                       {route.name}
@@ -144,7 +144,7 @@ export default function Navbar() {
                   href={route.path}
                   className={`block border-l-4 ${
                     router.asPath === route.path
-                      ? 'border-amber-500 bg-amber-50'
+                      ? 'border-amber-500 bg-amber-50 dark:bg-amber-600/25'
                       : 'border-transparent'
                   } py-2 pl-3 pr-4 text-base font-medium text-amber-700 sm:pl-5 sm:pr-6`}
                 >
