@@ -1,12 +1,15 @@
-import { useRouter } from 'next/router';
+import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
+import toast, { Toaster } from 'react-hot-toast';
 import { Disclosure } from '@headlessui/react';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
+import { useSupabaseClient } from '@supabase/auth-helpers-react';
 
 const navbarRoutes = [
   {
     name: 'Dashboard',
-    path: '/home',
+    path: '/',
   },
   {
     name: 'Swap',
@@ -17,10 +20,26 @@ const navbarRoutes = [
 export default function Navbar() {
   const router = useRouter();
 
+  const supabaseClient = useSupabaseClient();
+
+  const signOut = React.useCallback(async () => {
+    const toastId = toast.loading('Signing out...');
+    try {
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) throw error;
+
+      toast.success('Signed out successfully', { id: toastId });
+      router.push('/auth/login');
+    } catch (error) {
+      toast.error(`Error: ${error?.message}`, { id: toastId });
+    }
+  }, [router, supabaseClient.auth]);
+
   return (
     <Disclosure as="nav" className="bg-white dark:bg-black shadow">
       {({ open }) => (
         <>
+          <Toaster />
           <div className="mx-auto max-w-7xl px-6">
             <div className="flex h-16 justify-between">
               <div className="flex">
@@ -123,8 +142,7 @@ export default function Navbar() {
               <div className="flex items-center">
                 <div className="hidden md:ml-4 md:flex md:flex-shrink-0 md:items-center">
                   <button
-                    // as="a"
-                    href="#"
+                    onClick={signOut}
                     className="block px-4 sm:px-0 py-2 text-base font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                   >
                     Sign out
@@ -156,7 +174,7 @@ export default function Navbar() {
             <div className="border-t border-gray-200 dark:border-gray-50/25 pb-3 pt-4">
               <Disclosure.Button
                 as="a"
-                href="#"
+                onClick={signOut}
                 className="block px-4 py-2 text-base font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 sm:px-6"
               >
                 Sign out
