@@ -1,9 +1,110 @@
-import { manrope } from '@/config';
+import React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
+import { useForm } from 'react-hook-form';
+import toast, { Toaster } from 'react-hot-toast';
+import { useSupabaseClient } from '@supabase/auth-helpers-react';
+import { createServerSupabaseClient } from '@supabase/auth-helpers-nextjs';
+import { manrope } from '@/config';
+import { in200s } from '@/lib/validators';
+import { APIClient } from '@/lib/apiClient';
+
+export const getServerSideProps = async (ctx) => {
+  // Create authenticated Supabase Client
+  const supabase = createServerSupabaseClient(ctx);
+  // Check if we have a session
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (session)
+    return {
+      redirect: {
+        destination: '/',
+        permanent: false,
+      },
+    };
+
+  return {
+    props: {},
+  };
+};
 
 export default function Register() {
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm();
+
+  const supabaseClient = useSupabaseClient();
+  const router = useRouter()
+
+  const onSubmit = React.useCallback(
+    async (formData) => {
+      const { email, password } = formData;
+
+      delete formData.confirmPassword;
+      delete formData.password;
+
+      const toastId = toast.loading('Creating your account...');
+
+      try {
+        const response = await APIClient.post('/user/create', formData);
+
+        if (in200s(response.status)) {
+          toast.loading('Finalizing last steps...', { id: toastId });
+          const { data, error } = await supabaseClient.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                strigaUserId: response.data.userId,
+              },
+            },
+          });
+
+          if (error) throw error;
+
+          toast.success('Account created successfully', { id: toastId });
+          router.push('/')
+        }
+      } catch (error) {
+        console.log(error);
+
+        if (error.response) {
+          // throw error response from server
+          // handle error in react-query
+          // throw error.response;
+          toast.error(`Error: ${error?.response?.data?.message}`, {
+            id: toastId,
+          });
+        } else {
+          toast.error(`Error: ${error?.message}`, {
+            id: toastId,
+          });
+        }
+      }
+    },
+    [supabaseClient.auth],
+  );
+
+  // call api in useEffect
+  React.useEffect(() => {
+    // call api
+    APIClient.post('/ping')
+      .then((res) => {
+        console.log(res);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  }, []);
+
   return (
     <main className={`flex flex-col min-h-screen ${manrope.className}`}>
+      <Toaster />
       <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
         <div className="flex flex-col items-center sm:mx-auto sm:w-full sm:max-w-md">
           <svg
@@ -76,7 +177,111 @@ export default function Register() {
 
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-[30rem]">
           <div className="bg-white dark:bg-gray-950 px-6 py-12 shadow sm:rounded-lg sm:px-12">
-            <form className="space-y-6" action="#" method="POST">
+            <form className="space-y-6">
+              <div>
+                <label
+                  htmlFor="first-name"
+                  className="block text-sm font-medium leading-6"
+                >
+                  First name
+                </label>
+                <div className="mt-2">
+                  <input
+                    {...register('firstName', {
+                      required: {
+                        value: true,
+                        message: 'First name is required',
+                      },
+                      minLength: {
+                        value: 2,
+                        message: 'First name must be at least 2 characters',
+                      },
+                      maxLength: {
+                        value: 25,
+                        message: 'First name must not exceed 25 characters',
+                      },
+                    })}
+                    className="block w-full rounded-md border-0 dark:bg-white/5 px-2 py-2 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-white/10 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6"
+                    placeholder="John"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="last-name"
+                  className="block text-sm font-medium leading-6"
+                >
+                  Last name
+                </label>
+                <div className="mt-2">
+                  <input
+                    {...register('lastName', {
+                      required: {
+                        value: true,
+                        message: 'Last name is required',
+                      },
+                      minLength: {
+                        value: 2,
+                        message: 'Last name must be at least 2 characters',
+                      },
+                      maxLength: {
+                        value: 25,
+                        message: 'Last name must not exceed 25 characters',
+                      },
+                    })}
+                    className="block w-full rounded-md border-0 dark:bg-white/5 px-2 py-2 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-white/10 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6"
+                    placeholder="Doe"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="mobile-number"
+                  className="block text-sm font-medium leading-6"
+                >
+                  Mobile number
+                </label>
+                <div className="flex mt-2 rounded-md shadow-sm">
+                  <div className="flex items-center">
+                    <label htmlFor="country" className="sr-only">
+                      Country
+                    </label>
+                    <input
+                      {...register('mobile.countryCode', {
+                        required: {
+                          value: true,
+                          message: 'Country code is required',
+                        },
+                        pattern: {
+                          value: /[\+][0-9]+/i,
+                          message:
+                            'Entered value does not match country code format',
+                        },
+                      })}
+                      placeholder="+91"
+                      className="w-20 mr-3 rounded-md border-0 dark:bg-white/5 p-2 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-white/10 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6"
+                    />
+                  </div>
+                  <input
+                    {...register('mobile.number', {
+                      required: {
+                        value: true,
+                        message: 'Mobile number is required',
+                      },
+                      pattern: {
+                        value: /^[0-9]+/i,
+                        message:
+                          'Entered value does not match mobile number format',
+                      },
+                    })}
+                    className="block w-full rounded-md border-0 dark:bg-white/5 px-2 py-2 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-white/10 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6"
+                    placeholder="9876564324"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label
                   htmlFor="email"
@@ -86,13 +291,18 @@ export default function Register() {
                 </label>
                 <div className="mt-2">
                   <input
-                    tabIndex={0}
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
+                    {...register('email', {
+                      required: {
+                        value: true,
+                        message: 'Email address is required',
+                      },
+                      pattern: {
+                        value: /\S+@\S+\.\S+/,
+                        message: 'Entered value does not match email format',
+                      },
+                    })}
                     className="block w-full rounded-md border-0 dark:bg-white/5 px-2 py-2 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-white/10 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6"
+                    placeholder="john@gmail.com"
                   />
                 </div>
               </div>
@@ -106,12 +316,43 @@ export default function Register() {
                 </label>
                 <div className="mt-2">
                   <input
-                    tabIndex={1}
-                    id="password"
-                    name="password"
                     type="password"
-                    autoComplete="current-password"
-                    required
+                    {...register('password', {
+                      required: {
+                        value: true,
+                        message: 'Please enter a password',
+                      },
+                      minLength: {
+                        value: 6,
+                        message: 'Password must be at least 6 characters',
+                      },
+                    })}
+                    className="block w-full rounded-md border-0 dark:bg-white/5 px-2 py-2 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-white/10 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="confirm-password"
+                  className="block text-sm font-medium leading-6"
+                >
+                  Confirm password
+                </label>
+                <div className="mt-2">
+                  <input
+                    type="password"
+                    {...register('confirmPassword', {
+                      required: {
+                        value: true,
+                        message: 'Please confirm your password',
+                      },
+                      validate: (val) => {
+                        if (watch('password') != val) {
+                          return 'Your passwords do no match';
+                        }
+                      },
+                    })}
                     className="block w-full rounded-md border-0 dark:bg-white/5 px-2 py-2 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-white/10 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6"
                   />
                 </div>
@@ -119,9 +360,10 @@ export default function Register() {
 
               <div>
                 <button
-                  tabIndex={2}
+                  onClick={handleSubmit(onSubmit)}
                   type="submit"
-                  className="flex w-full justify-center rounded-md bg-amber-600 dark:bg-amber-500 px-3 py-3 text-base font-semibold leading-6 text-white shadow-sm hover:bg-amber-500 dark:hover:bg-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 dark:focus-visible:outline-amber-500"
+                  disabled={Object.keys(errors).length > 0}
+                  className="flex w-full justify-center rounded-md bg-amber-600 dark:bg-amber-500 px-3 py-3 text-base font-semibold leading-6 text-white shadow-sm hover:bg-amber-500 dark:hover:bg-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 dark:focus-visible:outline-amber-500 disabled:bg-gray-300 disabled:text-gray-400 dark:disabled:bg-gray-700 dark:disabled:text-gray-400"
                 >
                   Sign up
                 </button>
@@ -132,7 +374,6 @@ export default function Register() {
           <p className="mt-10 text-center text-sm text-gray-500 dark:text-gray-400">
             Already a member?{' '}
             <Link
-              tabIndex={4}
               href="/auth/login"
               className="font-semibold leading-6 text-amber-600 dark:text-amber-400 hover:text-amber-500  dark:hover:text-amber-300"
             >

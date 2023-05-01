@@ -4,6 +4,7 @@ import {
   ChevronDoubleRightIcon,
   ClipboardDocumentIcon,
 } from '@heroicons/react/24/outline';
+import { createServerSupabaseClient } from '@supabase/auth-helpers-nextjs';
 
 const coinsMeta = {
   USDC: {
@@ -262,6 +263,31 @@ const accounts = {
     enriched: true,
   },
 };
+
+export const getServerSideProps = async (ctx) => {
+  // Create authenticated Supabase Client
+  const supabase = createServerSupabaseClient(ctx);
+  // Check if we have a session
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session)
+    return {
+      redirect: {
+        destination: '/auth/login',
+        permanent: false,
+      },
+    };
+
+  return {
+    props: {
+      initialSession: session,
+      user: session.user,
+    },
+  };
+};
+
 
 export default function Swap() {
   return (
@@ -644,7 +670,7 @@ export default function Swap() {
 
           <div className="flex justify-center mt-8">
             <button
-              onClick={() => router.push('/home')}
+              onClick={() => router.push('/')}
               tabIndex={2}
               type="submit"
               disabled

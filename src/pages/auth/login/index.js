@@ -1,7 +1,67 @@
-import { manrope } from "@/config";
-import Link from "next/link";
+import React from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
+import { useForm } from 'react-hook-form';
+import toast, { Toaster } from 'react-hot-toast';
+import { useSupabaseClient } from '@supabase/auth-helpers-react';
+import { createServerSupabaseClient } from '@supabase/auth-helpers-nextjs';
+import { manrope } from '@/config';
+
+export const getServerSideProps = async (ctx) => {
+  // Create authenticated Supabase Client
+  const supabase = createServerSupabaseClient(ctx);
+  // Check if we have a session
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (session)
+    return {
+      redirect: {
+        destination: '/',
+        permanent: false,
+      },
+    };
+
+  return {
+    props: {},
+  };
+};
 
 export default function Login() {
+  const router = useRouter();
+  const supabaseClient = useSupabaseClient();
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm();
+
+  const onSubmit = React.useCallback(
+    async (formData) => {
+      setIsLoading(true);
+      const toastId = toast.loading('Signing in...');
+
+      try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword(
+          formData,
+        );
+
+        if (error) throw error;
+
+        router.push('/');
+        toast.success('Signed in successfully', { id: toastId });
+      } catch (error) {
+        toast.error(`Error: ${error?.message}`, { id: toastId });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [router, supabaseClient.auth],
+  );
+
   return (
     <main className={`flex flex-col min-h-screen ${manrope.className}`}>
       <div className="flex min-h-full flex-1 flex-col justify-center px-6 py-12 lg:px-8">
@@ -76,7 +136,7 @@ export default function Login() {
 
         <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-[30rem]">
           <div className="bg-white dark:bg-gray-950 px-6 py-12 shadow sm:rounded-lg sm:px-12">
-            <form className="space-y-6" action="#" method="POST">
+            <form className="space-y-6">
               <div>
                 <label
                   htmlFor="email"
@@ -86,13 +146,18 @@ export default function Login() {
                 </label>
                 <div className="mt-2">
                   <input
-                    tabIndex={0}
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
+                    {...register('email', {
+                      required: {
+                        value: true,
+                        message: 'Email address is required',
+                      },
+                      pattern: {
+                        value: /\S+@\S+\.\S+/,
+                        message: 'Entered value does not match email format',
+                      },
+                    })}
                     className="block w-full rounded-md border-0 dark:bg-white/5 px-2 py-2 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-white/10 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6"
+                    placeholder="john@gmail.com"
                   />
                 </div>
               </div>
@@ -107,7 +172,6 @@ export default function Login() {
                   </label>
                   <div className="text-sm">
                     <a
-                      tabIndex={3}
                       href="#"
                       className="font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-500 dark:hover:text-amber-300"
                     >
@@ -117,12 +181,17 @@ export default function Login() {
                 </div>
                 <div className="mt-2">
                   <input
-                    tabIndex={1}
-                    id="password"
-                    name="password"
                     type="password"
-                    autoComplete="current-password"
-                    required
+                    {...register('password', {
+                      required: {
+                        value: true,
+                        message: 'Please enter a password',
+                      },
+                      minLength: {
+                        value: 6,
+                        message: 'Password must be at least 6 characters',
+                      },
+                    })}
                     className="block w-full rounded-md border-0 dark:bg-white/5 px-2 py-2 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-white/10 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6"
                   />
                 </div>
@@ -130,9 +199,10 @@ export default function Login() {
 
               <div>
                 <button
-                  tabIndex={2}
+                  onClick={handleSubmit(onSubmit)}
                   type="submit"
-                  className="flex w-full justify-center rounded-md bg-amber-600 dark:bg-amber-500 px-3 py-3 text-base font-semibold leading-6 text-white shadow-sm hover:bg-amber-500 dark:hover:bg-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 dark:focus-visible:outline-amber-500"
+                  disabled={Object.keys(errors).length > 0 || isLoading}
+                  className="flex w-full justify-center rounded-md bg-amber-600 dark:bg-amber-500 px-3 py-3 text-base font-semibold leading-6 text-white shadow-sm hover:bg-amber-500 dark:hover:bg-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 dark:focus-visible:outline-amber-500 disabled:bg-gray-300 disabled:text-gray-400 dark:disabled:bg-gray-700 dark:disabled:text-gray-400"
                 >
                   Sign in
                 </button>
@@ -152,6 +222,7 @@ export default function Login() {
           </p>
         </div>
       </div>
+      <Toaster />
     </main>
   );
 }
