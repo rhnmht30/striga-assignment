@@ -39,7 +39,7 @@ export default function Register() {
   } = useForm();
 
   const supabaseClient = useSupabaseClient();
-  const router = useRouter()
+  const router = useRouter();
 
   const onSubmit = React.useCallback(
     async (formData) => {
@@ -68,7 +68,7 @@ export default function Register() {
           if (error) throw error;
 
           toast.success('Account created successfully', { id: toastId });
-          router.push('/')
+          router.push('/');
         }
       } catch (error) {
         console.log(error);
@@ -87,7 +87,7 @@ export default function Register() {
         }
       }
     },
-    [supabaseClient.auth],
+    [router, supabaseClient.auth],
   );
 
   // call api in useEffect

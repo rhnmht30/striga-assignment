@@ -51,8 +51,8 @@ export default function Login() {
 
         if (error) throw error;
 
-        router.push('/');
         toast.success('Signed in successfully', { id: toastId });
+        router.push('/');
       } catch (error) {
         toast.error(`Error: ${error?.message}`, { id: toastId });
       } finally {
